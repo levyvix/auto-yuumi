@@ -211,9 +211,7 @@ func foregroundMonitor() (int, error) {
 func down(k uintptr) bool { v, _, _ := asyncKey.Call(k); return v&0x8000 != 0 }
 func focused() bool {
 	hwnd, _, _ := foreground.Call()
-	var title [512]uint16
-	windowText.Call(hwnd, uintptr(unsafe.Pointer(&title[0])), 512)
-	return strings.EqualFold(syscall.UTF16ToString(title[:]), "League of Legends (TM) Client")
+	return isGameWindow(hwnd)
 }
 
 // RGB mean absolute error. Threshold is a tolerance, not a probability.
@@ -459,6 +457,7 @@ func execute() error {
 	started := time.Now()
 	lastE := time.Now()
 	var returning baseReturn
+	var baseSide baseLocator
 	lastActive := time.Now()
 	for {
 		gameFocus := focused()
@@ -492,7 +491,22 @@ func execute() error {
 		if err != nil {
 			return err
 		}
+		// Loading screens and a dead Yuumi must never trigger ADC-death actions.
+		self := &Entry{Target: &[2]int{800, 1050}, Health: []int{780, 1045, 270, 12}}
+		if _, ready := locateAlly(frame, self, c.Threshold); !ready {
+			lastActive = time.Now()
+			lastE = time.Now()
+			previous, frames = -1, 0
+			time.Sleep(time.Duration(c.Poll * float64(time.Second)))
+			continue
+		}
 		now := time.Now()
+		gameHandle, _, _ := foreground.Call()
+		wasLocked := baseSide.votes >= 5 && baseSide.window == gameHandle
+		shop, shopKnown := baseSide.observe(gameHandle, frame)
+		if shopKnown && !wasLocked {
+			log.Printf("Base aliada confirmada pelas estruturas do minimapa: %v; lado fixado nesta partida", shop)
+		}
 		dt := now.Sub(lastActive)
 		lastActive = now
 		_, attachedNow := match(frame, c.Signals["attached"], c.Threshold)
@@ -501,13 +515,12 @@ func execute() error {
 			action, blocked := returning.step(dt, adcAlive, attachedNow)
 			switch action {
 			case "walk":
-				shop, found := alliedShop(frame)
-				if !found {
-					log.Print("ADC morreu: loja verde nao identificada com confianca; aguardando sem clicar")
+				if !shopKnown {
+					log.Print("ADC morreu: lado da base ainda nao confirmado; aguardando sem clicar")
 					returning = baseReturn{}
 					break
 				}
-				log.Printf("ADC morreu: indo para a loja verde em %v; recall em 10s", shop)
+				log.Printf("ADC morreu: retornando para a base aliada em %v; recall em 10s", shop)
 				if *live {
 					if err := clickBase(image.Pt(bounds.Min.X+shop.X, bounds.Min.Y+shop.Y)); err != nil {
 						log.Print(err)
@@ -529,7 +542,17 @@ func execute() error {
 			case "wait":
 				log.Print("Tempo de recall terminado: aguardando ADC vivo; recall interrompido ainda nao e detectado")
 			case "resume":
-				log.Print("ADC vivo: retomando W somente no ADC")
+				log.Print("ADC vivo ou Yuumi agarrada: retorno cancelado; retomando W somente no ADC")
+				if *live && !attachedNow && focused() && !desktopStop.Load() && (!desktopMode || !desktopPaused.Load()) {
+					if err := emitKey(0x1F, false); err != nil {
+						log.Print("Falha ao cancelar movimento/recall: ", err)
+					} else {
+						time.Sleep(80 * time.Millisecond)
+						if err := emitKey(0x1F, true); err != nil {
+							log.Print(err)
+						}
+					}
+				}
 			}
 			if blocked {
 				lastE = time.Now()

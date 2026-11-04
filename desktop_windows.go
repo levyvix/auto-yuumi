@@ -140,6 +140,7 @@ func runDesktopApp() {
 	user32.NewProc("ShowWindow").Call(hwnd, 5)
 	user32.NewProc("UpdateWindow").Call(hwnd)
 	os.Args = []string{os.Args[0], "run", "-live", "-autostart"}
+	watchGameLaunch()
 	go func() {
 		if err := execute(); err != nil {
 			log.Printf("Nao foi possivel iniciar: %v", err)

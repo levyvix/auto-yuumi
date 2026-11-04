@@ -15,6 +15,7 @@ O app so envia comandos com o jogo em primeiro plano. Mantenha `config.json` e a
 
 - Usa W no ADC pelo quarto retrato acima do minimapa.
 - Quando o ADC morre, clica na loja verde aliada, espera 10 segundos, usa recall e aguarda o ADC renascer.
+- Reavalia o ADC durante todo o retorno: se ele estiver vivo, cancela o movimento ou recall e retoma o W.
 - Bloqueia W e E durante a rotina de retorno.
 - Salva os registros na pasta `logs`.
 
