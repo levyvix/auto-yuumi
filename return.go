@@ -22,6 +22,20 @@ func (b *baseReturn) step(dt time.Duration, alive, attached bool) (string, bool)
 		b.elapsed = 0
 		return "walk", true
 	}
+	// Reevaluate before advancing any return timer or issuing recall.
+	if attached {
+		*b = baseReturn{}
+		return "resume", false
+	}
+	if alive {
+		b.aliveFrames++
+		if b.aliveFrames >= 3 {
+			*b = baseReturn{}
+			return "resume", false
+		}
+		return "", true
+	}
+	b.aliveFrames = 0
 	b.elapsed += dt
 	switch b.phase {
 	case "walking":
@@ -35,16 +49,6 @@ func (b *baseReturn) step(dt time.Duration, alive, attached bool) (string, bool)
 			b.phase = "waiting"
 			b.elapsed = 0
 			return "wait", true
-		}
-	case "waiting":
-		if alive {
-			b.aliveFrames++
-		} else {
-			b.aliveFrames = 0
-		}
-		if b.aliveFrames >= 3 {
-			*b = baseReturn{}
-			return "resume", false
 		}
 	}
 	return "", true

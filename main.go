@@ -542,7 +542,17 @@ func execute() error {
 			case "wait":
 				log.Print("Tempo de recall terminado: aguardando ADC vivo; recall interrompido ainda nao e detectado")
 			case "resume":
-				log.Print("ADC vivo: retomando W somente no ADC")
+				log.Print("ADC vivo ou Yuumi agarrada: retorno cancelado; retomando W somente no ADC")
+				if *live && !attachedNow && focused() && !desktopStop.Load() && (!desktopMode || !desktopPaused.Load()) {
+					if err := emitKey(0x1F, false); err != nil {
+						log.Print("Falha ao cancelar movimento/recall: ", err)
+					} else {
+						time.Sleep(80 * time.Millisecond)
+						if err := emitKey(0x1F, true); err != nil {
+							log.Print(err)
+						}
+					}
+				}
 			}
 			if blocked {
 				lastE = time.Now()
