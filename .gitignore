@@ -1,0 +1,12 @@
+auto-yuumi.exe
+.venv/
+__pycache__/
+captures/
+assets/*.png
+!assets/attached.png
+!assets/detached.png
+!assets/w_ready.png
+logs/
+versoes-antigas/
+auto-yuumi-*.exe
+dist/

@@ -1,0 +1,48 @@
+name: Release Please
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: write
+  pull-requests: write
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+    steps:
+      - uses: googleapis/release-please-action@v4
+        id: release
+        with:
+          config-file: .release-please-config.json
+          manifest-file: .release-please-manifest.json
+  build:
+    name: Build Windows executable
+    needs: release-please
+    if: ${{ needs.release-please.outputs.release_created }}
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.release-please.outputs.tag_name }}
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+      - run: go test ./...
+      - run: go vet ./...
+      - name: Build executable and ZIP
+        shell: pwsh
+        run: ./scripts/build.ps1
+      - name: Upload to release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ needs.release-please.outputs.tag_name }}
+        shell: pwsh
+        run: |
+          $releaseAssets = @(Get-Item dist/auto-yuumi.exe,dist/SHA256SUMS.txt | ForEach-Object FullName)
+          $releaseAssets += @(Get-ChildItem dist/*.zip | ForEach-Object FullName)
+          gh release upload $env:RELEASE_TAG @releaseAssets
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

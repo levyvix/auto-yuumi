@@ -1,0 +1,58 @@
+{
+  "allies": [
+    {
+      "click_offset": [
+        0,
+        0
+      ],
+      "enabled": true,
+      "health_region": [
+        1855,
+        727,
+        50,
+        8
+      ],
+      "name": "ADC (slot 4)",
+      "target": [
+        1880,
+        699
+      ]
+    }
+  ],
+  "auto_e": true,
+  "confirm_frames": 3,
+  "monitor": 0,
+  "poll_seconds": 0.25,
+  "retry_seconds": 3,
+  "signals": {
+    "attached": {
+      "region": [
+        855,
+        997,
+        30,
+        26
+      ],
+      "template": "assets/attached.png"
+    },
+    "detached": {
+      "region": [
+        855,
+        997,
+        30,
+        26
+      ],
+      "template": "assets/detached.png"
+    },
+    "w_ready": {
+      "region": [
+        855,
+        997,
+        30,
+        26
+      ],
+      "template": "assets/w_ready.png"
+    }
+  },
+  "threshold": 0.92,
+  "w_key": "w"
+}
