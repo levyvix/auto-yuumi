@@ -19,6 +19,7 @@
       ]
     }
   ],
+  "walk_in_base": true,
   "auto_e": true,
   "confirm_frames": 3,
   "monitor": 0,
