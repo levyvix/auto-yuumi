@@ -8,7 +8,7 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Falha na build' }
     Copy-Item dist/auto-yuumi.exe $packagePath
     Copy-Item config.json,README.md $packagePath
-    Copy-Item assets/attached.png,assets/detached.png,assets/w_ready.png (Join-Path $packagePath 'assets')
+    Copy-Item assets/attached.png,assets/detached.png,assets/w_ready.png,assets/shop_open.png,assets/homeguard.png,assets/level_up.png (Join-Path $packagePath 'assets')
     $zipPath = "$packagePath.zip"
     Compress-Archive -Path "$packagePath/*" -DestinationPath $zipPath -Force
     $checksum = (Get-FileHash -Algorithm SHA256 -LiteralPath $zipPath).Hash.ToLower()
