@@ -6,6 +6,9 @@ assets/*.png
 !assets/attached.png
 !assets/detached.png
 !assets/w_ready.png
+!assets/shop_open.png
+!assets/homeguard.png
+!assets/level_up.png
 logs/
 versoes-antigas/
 auto-yuumi-*.exe

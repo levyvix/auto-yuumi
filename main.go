@@ -62,14 +62,20 @@ func locateAlly(frame image.Image, e *Entry, threshold float64) (image.Point, bo
 }
 
 type Config struct {
-	AutoE     bool              `json:"auto_e"`
-	Monitor   int               `json:"monitor"`
-	Poll      float64           `json:"poll_seconds"`
-	Retry     float64           `json:"retry_seconds"`
-	Frames    int               `json:"confirm_frames"`
-	Threshold float64           `json:"threshold"`
-	Signals   map[string]*Entry `json:"signals"`
-	Allies    []*Entry          `json:"allies"`
+	AutoLevel   bool              `json:"auto_level"`
+	LevelMarker *Entry            `json:"level_marker"`
+	AutoBuy     bool              `json:"auto_buy"`
+	ShopMarker  *Entry            `json:"shop_marker"`
+	ShopTarget  [2]int            `json:"shop_target"`
+	BaseMarker  *Entry            `json:"base_marker"`
+	AutoE       bool              `json:"auto_e"`
+	Monitor     int               `json:"monitor"`
+	Poll        float64           `json:"poll_seconds"`
+	Retry       float64           `json:"retry_seconds"`
+	Frames      int               `json:"confirm_frames"`
+	Threshold   float64           `json:"threshold"`
+	Signals     map[string]*Entry `json:"signals"`
+	Allies      []*Entry          `json:"allies"`
 }
 
 var user32 = syscall.NewLazyDLL("user32.dll")
@@ -412,6 +418,22 @@ func execute() error {
 		}
 	}
 	entries := append([]*Entry{}, c.Allies...)
+	if c.AutoLevel {
+		if c.LevelMarker == nil {
+			return fmt.Errorf("level_marker ausente")
+		}
+		entries = append(entries, c.LevelMarker)
+	}
+	if c.AutoBuy {
+		if c.ShopMarker == nil {
+			return fmt.Errorf("shop_marker ausente")
+		}
+		entries = append(entries, c.ShopMarker)
+		if c.BaseMarker == nil {
+			return fmt.Errorf("base_marker ausente")
+		}
+		entries = append(entries, c.BaseMarker)
+	}
 	if command == "status" {
 		entries = nil
 	}
@@ -458,6 +480,10 @@ func execute() error {
 	lastE := time.Now()
 	var returning baseReturn
 	var baseSide baseLocator
+	shopHandled := false
+	var ownState lifeCache
+	var buyEvents purchaseEvents
+	var lastLevel time.Time
 	lastActive := time.Now()
 	for {
 		gameFocus := focused()
@@ -490,6 +516,59 @@ func execute() error {
 		frame, err := capture()
 		if err != nil {
 			return err
+		}
+		if command == "run" && c.AutoBuy {
+			life := ownState.read(time.Now())
+			_, homeguard := match(frame, c.BaseMarker, c.Threshold)
+			if reason := buyEvents.next(life, homeguard); reason != "" {
+				log.Print("Compra automatica por ", reason)
+				shopHandled = true
+				if *live {
+					if err := buyRecommended(c, bounds, capture, true); err != nil {
+						log.Print("Compra: ", err)
+					}
+				} else {
+					log.Print("SIMULACAO: abriria X, compraria recomendado e fecharia X")
+				}
+				lastE = time.Now()
+				lastActive = time.Now()
+				previous, frames = -1, 0
+				continue
+			}
+		}
+		if command == "run" && c.AutoBuy && shopVisible(frame, c) {
+			if !shopHandled {
+				shopHandled = true
+				if *live {
+					if err := buyRecommended(c, bounds, capture, false); err != nil {
+						log.Print("Compra: ", err)
+					}
+				} else {
+					log.Print("SIMULACAO: compraria o recomendado da direita")
+				}
+			}
+			lastE = time.Now()
+			lastActive = time.Now()
+			previous, frames = -1, 0
+			time.Sleep(time.Duration(c.Poll * float64(time.Second)))
+			continue
+		}
+		shopHandled = false
+		if command == "run" && c.AutoLevel && time.Since(lastLevel) >= 1500*time.Millisecond && !shopVisible(frame, c) {
+			if ability, ok := nextUpgrade(frame, c.LevelMarker, c.Threshold); ok {
+				lastLevel = time.Now()
+				if *live {
+					if err := levelAbility(ability); err != nil {
+						log.Print("Habilidade: ", err)
+					} else {
+						log.Printf("Ctrl+%s enviado para upar habilidade (R > Q > E > W)", ability.name)
+					}
+				} else {
+					log.Printf("SIMULACAO: uparia %s", ability.name)
+				}
+				lastActive = time.Now()
+				continue
+			}
 		}
 		// Loading screens and a dead Yuumi must never trigger ADC-death actions.
 		self := &Entry{Target: &[2]int{800, 1050}, Health: []int{780, 1045, 270, 12}}

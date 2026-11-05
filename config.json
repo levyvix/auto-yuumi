@@ -54,5 +54,38 @@
     }
   },
   "threshold": 0.92,
-  "w_key": "w"
+  "w_key": "w",
+  "auto_buy": true,
+  "shop_marker": {
+    "template": "assets/shop_open.png",
+    "region": [
+      460,
+      99,
+      130,
+      15
+    ]
+  },
+  "shop_target": [
+    860,
+    308
+  ],
+  "base_marker": {
+    "region": [
+      750,
+      885,
+      300,
+      95
+    ],
+    "template": "assets/homeguard.png"
+  },
+  "auto_level": true,
+  "level_marker": {
+    "template": "assets/level_up.png",
+    "region": [
+      817,
+      965,
+      19,
+      15
+    ]
+  }
 }
