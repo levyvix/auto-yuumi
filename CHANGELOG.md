@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.0](https://github.com/levyvix/auto-yuumi/compare/v1.1.0...v1.2.0) (2026-11-05)
+
+
+### Features
+
+* move in fountain while waiting for ADC ([#4](https://github.com/levyvix/auto-yuumi/issues/4)) ([f3dcb26](https://github.com/levyvix/auto-yuumi/commit/f3dcb26874964da311f75e5819ca3e4b74d51576))
+
 ## [1.1.0](https://github.com/levyvix/auto-yuumi/compare/v1.0.0...v1.1.0) (2026-11-05)
 
 
