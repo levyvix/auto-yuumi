@@ -62,6 +62,7 @@ func locateAlly(frame image.Image, e *Entry, threshold float64) (image.Point, bo
 }
 
 type Config struct {
+	WalkInBase  bool              `json:"walk_in_base"`
 	AutoLevel   bool              `json:"auto_level"`
 	LevelMarker *Entry            `json:"level_marker"`
 	AutoBuy     bool              `json:"auto_buy"`
@@ -429,6 +430,8 @@ func execute() error {
 			return fmt.Errorf("shop_marker ausente")
 		}
 		entries = append(entries, c.ShopMarker)
+	}
+	if c.AutoBuy || c.WalkInBase {
 		if c.BaseMarker == nil {
 			return fmt.Errorf("base_marker ausente")
 		}
@@ -484,6 +487,7 @@ func execute() error {
 	var ownState lifeCache
 	var buyEvents purchaseEvents
 	var lastLevel time.Time
+	var fountain fountainWalk
 	lastActive := time.Now()
 	for {
 		gameFocus := focused()
@@ -507,6 +511,7 @@ func execute() error {
 		}
 		wasF8 = pressed
 		if paused || !gameFocus {
+			fountain = fountainWalk{}
 			lastActive = time.Now()
 			lastE = time.Now()
 			previous, frames = -1, 0
@@ -517,9 +522,12 @@ func execute() error {
 		if err != nil {
 			return err
 		}
+		homeguard := false
+		if c.BaseMarker != nil && c.BaseMarker.img != nil {
+			_, homeguard = match(frame, c.BaseMarker, c.Threshold)
+		}
 		if command == "run" && c.AutoBuy {
 			life := ownState.read(time.Now())
-			_, homeguard := match(frame, c.BaseMarker, c.Threshold)
 			if reason := buyEvents.next(life, homeguard); reason != "" {
 				log.Print("Compra automatica por ", reason)
 				shopHandled = true
@@ -573,6 +581,7 @@ func execute() error {
 		// Loading screens and a dead Yuumi must never trigger ADC-death actions.
 		self := &Entry{Target: &[2]int{800, 1050}, Health: []int{780, 1045, 270, 12}}
 		if _, ready := locateAlly(frame, self, c.Threshold); !ready {
+			fountain = fountainWalk{}
 			lastActive = time.Now()
 			lastE = time.Now()
 			previous, frames = -1, 0
@@ -631,6 +640,17 @@ func execute() error {
 							log.Print(err)
 						}
 					}
+				}
+			}
+			if point, ok := fountain.target(now, c.WalkInBase && returning.phase == "waiting", adcAlive, attachedNow, homeguard && shopKnown, shop); ok {
+				if *live {
+					if err := clickBase(point.Add(bounds.Min)); err != nil {
+						log.Print("Movimento na fonte: ", err)
+					} else {
+						log.Printf("Movimento curto na fonte em %v; aguardando ADC", point)
+					}
+				} else {
+					log.Printf("SIMULACAO: movimento curto na fonte em %v", point)
 				}
 			}
 			if blocked {

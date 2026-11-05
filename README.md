@@ -20,6 +20,7 @@ O app so envia comandos com o jogo em primeiro plano. Mantenha `config.json` e a
 - Ao morrer ou detectar chegada a base, abre a loja com **X**, tenta comprar o recomendado da direita com o botao direito e fecha com **X**. Tambem faz uma tentativa ao abrir Recomendados manualmente.
 - Salva os registros na pasta `logs`.
 - Upa habilidades automaticamente com **Ctrl+tecla**, na prioridade **R > Q > E > W**, somente quando a seta de evolucao estiver disponivel.
+- Enquanto espera o ADC renascer, alterna entre dois pontos da fonte a cada 20 segundos se houver sinal de Guarda Territorial. `walk_in_base` desativa os movimentos.
 
 ## Limitacoes
 
