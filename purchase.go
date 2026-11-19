@@ -37,24 +37,42 @@ func buyRecommended(c Config, bounds image.Rectangle, capture func() (*image.RGB
 	if err != nil {
 		return err
 	}
-	if !shopVisible(frame, c) {
+	shopWasOpen := shopVisible(frame, c)
+	openedByApp := false
+	closeShopAfterAttempt := shopWasOpen
+	defer func() {
+		if closeShopAfterAttempt {
+			if err := tapShopKey(); err != nil {
+				log.Print("Fechar loja: ", err)
+			}
+		}
+	}()
+	if !shopWasOpen {
 		if !open {
 			return fmt.Errorf("aba Recomendados nao confirmada; nenhum clique enviado")
 		}
 		if err := tapShopKey(); err != nil {
 			return err
 		}
-		time.Sleep(400 * time.Millisecond)
+		openedByApp = true
+		shopWasOpen = true
+		closeShopAfterAttempt = true
+		time.Sleep(800 * time.Millisecond)
 		frame, err = capture()
 		if err != nil {
 			return err
 		}
 	}
-	if !shopVisible(frame, c) {
-		return fmt.Errorf("loja nao reconhecida apos X; nenhum clique enviado")
+	if !shopWasOpen {
+		return fmt.Errorf("loja nao reconhecida; nenhum clique enviado")
 	}
+	// The input above opens the store, but the visual header can fail to match
+	// after game UI updates. Do not leave that store stranded after this attempt.
 	if !inputAllowed() {
 		return fmt.Errorf("compra cancelada por foco ou pausa")
+	}
+	if openedByApp && !shopVisible(frame, c) {
+		log.Print("Loja aberta com X, mas o marcador visual nao foi reconhecido; tentando o recomendado configurado")
 	}
 	target := image.Pt(c.ShopTarget[0], c.ShopTarget[1])
 	if !target.In(frame.Bounds()) {
@@ -66,13 +84,7 @@ func buyRecommended(c Config, bounds image.Rectangle, capture func() (*image.RGB
 	log.Print("Botao direito enviado ao recomendado da direita; compra depende de ouro, espaco e acesso a loja")
 	time.Sleep(250 * time.Millisecond)
 	if inputAllowed() {
-		frame, err = capture()
-		if err != nil {
-			return err
-		}
-		if shopVisible(frame, c) {
-			return tapShopKey()
-		}
+		time.Sleep(250 * time.Millisecond)
 	}
 	return nil
 }
