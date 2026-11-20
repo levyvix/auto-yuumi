@@ -120,8 +120,30 @@ func (runtime automationRuntime) run() error {
 			if ability, ok := nextUpgrade(frame, c.LevelMarker, c.Threshold); ok {
 				lastLevel = time.Now()
 				if live {
-					if err := levelAbility(ability); err != nil {
+					var err error
+					if ability.name == "R" {
+						// Clicking the detected upgrade arrow avoids relying on the
+						// player's Ctrl+R binding for the ultimate.
+						if point, found := upgradePosition(frame, c.LevelMarker, ability, c.Threshold); found {
+							err = clickLevelArrow(point.Add(bounds.Min))
+						} else {
+							err = fmt.Errorf("seta de R desapareceu antes do clique")
+						}
+					} else {
+						err = levelAbility(ability)
+					}
+					if err != nil {
 						log.Print("Habilidade: ", err)
+					} else if ability.name == "R" {
+						time.Sleep(250 * time.Millisecond)
+						confirmation, captureErr := capture()
+						if captureErr != nil {
+							log.Print("Clique na seta de R enviado; nao foi possivel confirmar: ", captureErr)
+						} else if _, stillAvailable := upgradePosition(confirmation, c.LevelMarker, ability, c.Threshold); stillAvailable {
+							log.Print("Seta de R continua visivel depois do clique; vou tentar novamente")
+						} else {
+							log.Print("Ultimate evoluida; seta de R desapareceu")
+						}
 					} else {
 						log.Printf("Ctrl+%s enviado para upar habilidade (R > Q > E > W)", ability.name)
 					}

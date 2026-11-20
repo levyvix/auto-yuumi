@@ -167,9 +167,9 @@ func abs(v int) int {
 	return v
 }
 
-func clickBase(point image.Point) error {
+func clickScreen(point image.Point, action string, downFlag, upFlag uint32) error {
 	if !focused() || desktopStop.Load() || (desktopMode && desktopPaused.Load()) {
-		return fmt.Errorf("retorno cancelado por foco ou pausa")
+		return fmt.Errorf("%s cancelado por foco ou pausa", action)
 	}
 	var old struct{ X, Y int32 }
 	getCursor.Call(uintptr(unsafe.Pointer(&old)))
@@ -181,17 +181,25 @@ func clickBase(point image.Point) error {
 	}()
 	time.Sleep(150 * time.Millisecond)
 	if !focused() || desktopStop.Load() || (desktopMode && desktopPaused.Load()) {
-		return fmt.Errorf("retorno cancelado por foco ou pausa")
+		return fmt.Errorf("%s cancelado por foco ou pausa", action)
 	}
-	for _, flags := range []uint32{0x0008, 0x0010} {
+	for _, flags := range []uint32{downFlag, upFlag} {
 		i := nativeInput{}
 		*(*uint32)(unsafe.Pointer(&i.Data[12])) = flags
 		if n, _, err := sendInput.Call(1, uintptr(unsafe.Pointer(&i)), unsafe.Sizeof(i)); n != 1 {
-			return fmt.Errorf("clique de retorno rejeitado: %v", err)
+			return fmt.Errorf("clique para %s rejeitado: %v", action, err)
 		}
 		time.Sleep(80 * time.Millisecond)
 	}
 	return nil
+}
+
+func clickBase(point image.Point) error {
+	return clickScreen(point, "retorno", 0x0008, 0x0010) // right button
+}
+
+func clickLevelArrow(point image.Point) error {
+	return clickScreen(point, "upar habilidade", 0x0002, 0x0004) // left button
 }
 
 func foregroundMonitor() (int, error) {
