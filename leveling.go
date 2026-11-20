@@ -21,7 +21,10 @@ func nextUpgrade(frame image.Image, marker *Entry, threshold float64) (abilityUp
 	}
 	for _, ability := range upgradePriority {
 		candidate := *marker
-		candidate.Region = []int{ability.x, 965, 19, 15}
+		// Search a small area around each calibrated button. The HUD can shift
+		// a few pixels with UI scaling and updates, which otherwise hides R's
+		// level arrow while the other abilities may still be detected.
+		candidate.Region = []int{ability.x - 10, 959, 39, 27}
 		if _, ok := match(frame, &candidate, threshold); ok {
 			return ability, true
 		}
